@@ -1,112 +1,163 @@
-import json
 import subprocess
 import textwrap
-
-from jinja2 import Template
-
+import json
+from collections import OrderedDict
 from cloudmesh.common.util import path_expand
-
+import oyaml as yaml
 
 class Rack(object):
-    def __init__(self, servers):
-        self.template_string = None
-        self.servers = servers
+    """
+    A class to draw nic rack diagrams
+
+    Example:
+
+        from cloudmesh.diagram.rack import Rack
+
+        rack = Rack(arguments.hostnames)
+
+        pprint(rack)
+
+        rack.set("red01", color="blue")
+        rack.set("red02", color="green")
+        rack.set("red03", textcolor="red")
+        rack.set("red04", shape="cloud")
+        rack.set("red02", numbered="1")
+
+        name = arguments.FILENAME
+
+        rack.save(name)
+
+        rack.svg(name)
+        rack.view(name)
+
+
+    """
+    def __init__(self, names=None, name=None, data=None):
         self.diag = None
-        self.data = None
+        if names is not None:
+            self.names = names
+            if name is None:
+                self.name = names[0]
+            else:
+                self.name = name
+            self.servers = len(names)
+            if data is None:
+                self.data = OrderedDict()
+                counter = 1
+                for name in names:
+                    self.data[name] = \
+                        {
+                            "color": "white",
+                            "label": name,
+                            "numbered": "",
+                            "fontsize": "",
+                            "shape": "",
+                            "textcolor": "",
+                        }
+                    counter = counter + 1
+            else:
+                self.data = data
+        else:
+            self.names = names
+            self.name = name
+            self.data = data
+            self.servers = 0
 
-    def set_template(self, template):
+    def render(self):
 
-        if template is None:
-            self.template_string = "rackdiag {" + '''
+        name = self.names[0]
+
+        header = "rackdiag {" + textwrap.dedent(f"""
               // Change order of rack-number as ascending
               ascending;
 
               // define height of rack
-              20U;
+              {self.servers}U;
 
               // define description of rack
-              description = "Cloudmesh Cluster Diagram";
+              description = "{name}";
 
               // define rack units
-              1: UPS [2U];   // define height of unit
-              3: Network [color=green]
-              {% for x in range (0, 10) %}
-              {{x+4}}: Server [''' + " ".join([
-                '{{server[x]["label"]}}',
-                '{{server[x]["numbered"]}}',
-                '{{server[x]["fontsize"]}}',
-                '{{server[x]["shape"]}}',
-                '{{server[x]["textcolor"]}}',
-                '{{server[x]["color"]}}'
-            ]) + "]" + '''{% endfor %}''' + "\n}"
-        else:
-            self.template_string = template
-        self.generate_rack(self.servers)
+        """)
 
-    def generate_rack(self, servers):
-        empty = {
-            "color": 'color="white" ',
-            "label": "",
-            "numbered": "",
-            "fontsize": "",
-            "shape": "",
-            "textcolor": "",
-        }
-        self.data = []
-        for server in range(0, servers):
-            self.data.append(dict(empty))
+        footer = "\n}"
+
+        servers = []
+        counter = 1
+        for name in self.data:
+            parameters = []
+            for attribute in self.data[name]:
+                value = self.data[name][attribute]
+                if value is not None and value != "":
+                    parameters.append(
+                        f"{attribute}=\"{value}\""
+                    )
+            parameters = ", ".join(parameters)
+            servers.append(
+                f'{counter}: {name} [ {parameters} ]'
+            )
+            counter = counter + 1
+
+        servers = "\n".join(servers)
+
+        self.diag = header + servers + footer
+
+        return self.diag
 
     def __str__(self):
         return json.dumps(self.data, indent=4)
 
-    def dump(self):
-        content = self.diag
-        result = []
-        counter = 1
-        for line in content.splitlines():
-            result.append("{0:>5}: {1}".format(counter, line))
-            counter += 1
-        return '\n'.join(result)
-
-    def set(self, server, **kwargs):
+    def set(self, name, **kwargs):
         for attribute in kwargs:
-            comma = ' '
-            if attribute != 'color':
-                comma = ', '
             value = kwargs[attribute]
-            self.data[server - 1][attribute] = f'{attribute}="{value}"{comma}'
+            self.data[name][attribute] = value
 
-    def set_color(self, server, color):
-        self.set(server, color=color)
+    def set_color(self, name, color):
+        self.set(name, color=color)
 
-    def set_label(self, server, label):
-        self.set(server, label=label)
+    def set_label(self, name, label):
+        self.set(name, label=label)
 
-    def set_numbering(self, server, numbering):
-        self.set(server, numbering=numbering)
+    def set_numbering(self, name, numbering):
+        self.set(name, numbering=numbering)
 
-    def set_fontsize(self, server, fontsize):
-        self.set(server, fontsize=fontsize)
+    def set_fontsize(self, name, fontsize):
+        self.set(name, fontsize=fontsize)
 
-    def set_textcolorl(self, server, textcolorl):
-        self.set(server, textcolorl=textcolorl)
+    def set_textcolorl(self, name, textcolorl):
+        self.set(name, textcolorl=textcolorl)
 
-    def set_shape(self, server, shape):
-        self.set(server, shape=shape)
+    def set_shape(self, name, shape):
+        self.set(name, shape=shape)
 
-    def render(self):
-        template = Template(textwrap.dedent(self.template_string))
-        self.diag = template.render(server=self.data)
-        return self.diag
+    def save(self, filename):
+        data = {
+            "name": self.name,
+            "names": self.names,
+            "data": self.data
+        }
+        with open(path_expand(filename), 'w') as f:
+            yaml.safe_dump(data, f)
+
+    def load(self, filename):
+        with open(path_expand(filename), 'r') as f:
+            content = yaml.safe_load(f)
+            self.names = content["names"]
+            self.data = content["data"]
+            self.name = content["name"]
+            self.servers = len (self.names)
 
     def diagram(self, name):
         filename = path_expand(name)
+        content = self.render()
         with open(f'{name}.diag', 'w') as f:
-            f.write(self.diag)
+            f.write(content)
+            f.write("\n")
+            f.flush()
 
     def svg(self, name):
         filename = path_expand(name)
-        self.diagram(filename)
+        self.diagram(name)
         cmd = ['rackdiag', "-T", "svg", f"{filename}.diag"]
         subprocess.Popen(cmd).wait()
 
@@ -115,21 +166,8 @@ class Rack(object):
         cmd = ['open', f"{filename}.svg"]
         subprocess.Popen(cmd)
 
+    def __repr__(self):
+        return json.dumps(self.data, indent=4)
 
-if __name__ == "__main__":
-    rack = Rack(10)
-    rack.set_template(None)
-    rack.set(10, color="blue")
-    rack.set(9, color="green")
-    rack.set(8, textcolor="red")
-    rack.set(7, textsize="24")
-    rack.set(7, shape="cloud")
-    rack.set(6, numbered="1")
 
-    result = rack.render()
-    # print rack.dump()
-
-    name = "~/.cloudmesh/c"
-    rack.svg(name)
-    rack.view(name)
 
