@@ -16,10 +16,10 @@ class DiagramCommand(PluginCommand):
         ::
 
           Usage:
-                diagram set RACK --hostname=NAMES
-                diagram set RACK NAME ATTRIBUTE VALUE
-                diagram rack RACK
-                diagram net RACK --hostname=NAMES
+                diagram set CLUSTER --hostname=NAMES
+                diagram set CLUSTER NAME ATTRIBUTE VALUE
+                diagram rack CLUSTER
+                diagram net CLUSTER
 
 
           This command does some useful things.
@@ -36,15 +36,11 @@ class DiagramCommand(PluginCommand):
                     pip install cloudmesh-diagram
 
                 Create a rack diagram:
-                    cms diagram rack d --hostname="red[00-04]"
-                    cms diagram rack d red01 color blue
-                    cms diagram view d
-
-                Create a network diagram:
-                    cms diagram net  n --hostname="red,red[01-04]"
-
-                    The network diagram does not yet have the ability to set
-                    attributes
+                    cms diagram set d --hostname="red[00-04]"
+                    cms diagram set d red01 rack.color blue
+                    cms diagram set d red02 net.color red
+                    cms diagram rack d
+                    cms diagram net d
 
 
         """
@@ -55,34 +51,38 @@ class DiagramCommand(PluginCommand):
 
             hostnames = Parameter.expand(arguments.hostname)
             rack = Diagram(hostnames)
-            name = arguments.RACK
+            name = arguments.CLUSTER
             rack.save(name)
 
 
         elif arguments.set and arguments.NAME:
             rack = Diagram()
-            rack.load(arguments.RACK)
+            rack.load(arguments.CLUSTER)
             data = {
                 arguments.ATTRIBUTE: arguments.VALUE
             }
             rack.set(arguments.NAME, **data)
-            rack.save(arguments.RACK)
+            rack.save(arguments.CLUSTER)
 
         elif arguments.rack:
+            svg = f"{arguments.CLUSTER}-rack"
             rack = Diagram()
-            rack.load(arguments.RACK)
+            rack.load(arguments.CLUSTER)
             rack.render(kind="rack")
-            rack.svg(arguments.RACK)
-            rack.view(arguments.RACK)
+            rack.save_diagram(svg)
+            rack.svg(svg, kind="rack")
+            rack.view(svg)
 
         elif arguments.net:
 
-            hostnames = Parameter.expand(arguments.hostname)
+            svg = f"{arguments.CLUSTER}-net"
 
-            net = Diagram(hostnames=hostnames)
-            net.render(kind="net")
-            net.svg(arguments.RACK)
-            net.view(arguments.RACK)
+            net = Diagram()
+            net.load(arguments.CLUSTER)
+            net.render(kind="bridge")
+            net.save_diagram(svg)
+            net.svg(svg, kind="net")
+            net.view(svg)
 
 
         return ""

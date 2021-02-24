@@ -6,6 +6,7 @@ from collections import OrderedDict
 import oyaml as yaml
 
 from cloudmesh.common.util import path_expand
+from cloudmesh.common.console import Console
 
 
 class Diagram(object):
@@ -70,8 +71,10 @@ class Diagram(object):
     def render(self, kind="rack"):
         if kind == "rack":
             return self.render_rack()
-        if kind == "net":
-            return self.render_net()
+        elif kind == "bridge":
+            return self.render_bridge_net()
+        else:
+            Console.error("Diagram type not supported")
 
     def render_bridge_net(self):
 
@@ -98,20 +101,26 @@ class Diagram(object):
         for name in self.data:
             parameters = []
             for attribute in self.data[name]:
+                if attribute == "rack.color":
+                    continue
                 value = self.data[name][attribute]
+                if attribute == "net.color":
+                    attribute = "color"
                 if value is not None and value != "":
                     parameters.append(
                         f"{attribute}=\"{value}\""
                     )
-            parameters.append('address = "10.0.0.{counter}"')
+            parameters.append(f'address = "10.0.0.{counter}"')
             parameters = ", ".join(parameters)
             servers[name] = f'      {name} [ {parameters} ];'
             counter = counter + 1
 
+        from pprint import pprint
+        pprint (servers)
         workers = []
-        for worker in servers[1:]:
-            server = f'      {name} [ {servers[name]} ];'
-            workers.append(worker)
+        for worker in servers:
+            server = servers[worker]
+            workers.append(server)
 
         workers = "\n".join(workers)
 
@@ -211,18 +220,20 @@ class Diagram(object):
             self.name = content["name"]
             self.servers = len(self.names)
 
-    def diagram(self, name):
+    def save_diagram(self, name):
         filename = path_expand(name)
-        content = self.render()
         with open(f'{filename}.diag', 'w') as f:
-            f.write(content)
+            f.write(self.diag)
             f.write("\n")
             f.flush()
 
-    def svg(self, name):
+    def svg(self, name, kind="rack"):
         filename = path_expand(name)
-        self.diagram(name)
-        cmd = ['rackdiag', "-T", "svg", f"{filename}.diag"]
+        self.save_diagram(name)
+        if kind == 'rack':
+            cmd = ['rackdiag', "-T", "svg", f"{filename}.diag"]
+        elif kind == "net":
+            cmd = ['nwdiag', "-T", "svg", f"{filename}.diag"]
         subprocess.Popen(cmd).wait()
 
     def view(self, name):
