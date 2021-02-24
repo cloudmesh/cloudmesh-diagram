@@ -115,8 +115,6 @@ class Diagram(object):
             servers[name] = f'      {name} [ {parameters} ];'
             counter = counter + 1
 
-        from pprint import pprint
-        pprint (servers)
         workers = []
         for worker in servers:
             server = servers[worker]

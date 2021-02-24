@@ -1,5 +1,4 @@
 from cloudmesh.diagram.diagram import Diagram
-from cloudmesh.diagram.network import Network
 
 from cloudmesh.common.parameter import Parameter
 from cloudmesh.shell.command import PluginCommand
@@ -54,7 +53,6 @@ class DiagramCommand(PluginCommand):
             name = arguments.CLUSTER
             rack.save(name)
 
-
         elif arguments.set and arguments.NAME:
             rack = Diagram()
             rack.load(arguments.CLUSTER)
@@ -83,6 +81,5 @@ class DiagramCommand(PluginCommand):
             net.save_diagram(svg)
             net.svg(svg, kind="net")
             net.view(svg)
-
 
         return ""
