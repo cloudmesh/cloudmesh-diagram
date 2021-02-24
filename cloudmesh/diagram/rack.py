@@ -1,9 +1,12 @@
+import json
 import subprocess
 import textwrap
-import json
 from collections import OrderedDict
-from cloudmesh.common.util import path_expand
+
 import oyaml as yaml
+
+from cloudmesh.common.util import path_expand
+
 
 class Rack(object):
     """
@@ -13,7 +16,7 @@ class Rack(object):
 
         from cloudmesh.diagram.rack import Rack
 
-        rack = Rack(arguments.hostnames)
+        rack = Rack(names=arguments.hostnames)
 
         pprint(rack)
 
@@ -23,7 +26,8 @@ class Rack(object):
         rack.set("red04", shape="cloud")
         rack.set("red02", numbered="1")
 
-        name = arguments.FILENAME
+        name = "mycluster"  # filename for storing the data, no endong for now
+        rack.render(name)
 
         rack.save(name)
 
@@ -45,15 +49,14 @@ class Rack(object):
                 self.data = OrderedDict()
                 counter = 1
                 for name in names:
-                    self.data[name] = \
-                        {
-                            "color": "white",
-                            "label": name,
-                            "numbered": "",
-                            "fontsize": "",
-                            "shape": "",
-                            "textcolor": "",
-                        }
+                    self.data[name] = {
+                        "color": "white",
+                        "label": name,
+                        "numbered": "",
+                        "fontsize": "",
+                        "shape": "",
+                        "textcolor": "",
+                    }
                     counter = counter + 1
             else:
                 self.data = data
@@ -145,12 +148,12 @@ class Rack(object):
             self.names = content["names"]
             self.data = content["data"]
             self.name = content["name"]
-            self.servers = len (self.names)
+            self.servers = len(self.names)
 
     def diagram(self, name):
         filename = path_expand(name)
         content = self.render()
-        with open(f'{name}.diag', 'w') as f:
+        with open(f'{filename}.diag', 'w') as f:
             f.write(content)
             f.write("\n")
             f.flush()
@@ -168,6 +171,3 @@ class Rack(object):
 
     def __repr__(self):
         return json.dumps(self.data, indent=4)
-
-
-

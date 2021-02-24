@@ -1,12 +1,10 @@
-from cloudmesh.shell.command import command
-from cloudmesh.shell.command import PluginCommand
-from cloudmesh.common.console import Console
-from cloudmesh.common.util import path_expand
-from pprint import pprint
-from cloudmesh.common.debug import VERBOSE
-from cloudmesh.common.parameter import Parameter
-from cloudmesh.shell.command import map_parameters
 from cloudmesh.diagram.rack import Rack
+
+from cloudmesh.common.parameter import Parameter
+from cloudmesh.shell.command import PluginCommand
+from cloudmesh.shell.command import command
+from cloudmesh.shell.command import map_parameters
+
 
 class DiagramCommand(PluginCommand):
 
@@ -63,7 +61,9 @@ class DiagramCommand(PluginCommand):
         elif arguments.rack:
             rack = Rack()
             rack.load(arguments.RACK)
-            data = {arguments.ATTRIBUTE: arguments.VALUE }
+            data = {
+                arguments.ATTRIBUTE: arguments.VALUE
+            }
             rack.set(arguments.NAME, **data)
             rack.save(arguments.RACK)
 
