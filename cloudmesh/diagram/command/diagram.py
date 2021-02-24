@@ -1,4 +1,4 @@
-from cloudmesh.diagram.rack import Rack
+from cloudmesh.diagram.diagram import Diagram
 from cloudmesh.diagram.network import Network
 
 from cloudmesh.common.parameter import Parameter
@@ -16,10 +16,9 @@ class DiagramCommand(PluginCommand):
         ::
 
           Usage:
-                diagram rack RACK --hostname=NAMES
-                diagram rack RACK NAME ATTRIBUTE VALUE
+                diagram set RACK --hostname=NAMES
+                diagram set RACK NAME ATTRIBUTE VALUE
                 diagram rack RACK
-                diagram view RACK
                 diagram net RACK --hostname=NAMES
 
 
@@ -52,22 +51,16 @@ class DiagramCommand(PluginCommand):
 
         map_parameters(arguments, 'hostname')
 
-        if arguments.rack and arguments.hostname:
+        if arguments.set and arguments.hostname:
 
             hostnames = Parameter.expand(arguments.hostname)
-            rack = Rack(hostnames)
+            rack = Diagram(hostnames)
             name = arguments.RACK
             rack.save(name)
 
-        elif arguments.view:
-            rack = Rack()
-            rack.load(arguments.RACK)
-            rack.render()
-            rack.svg(arguments.RACK)
-            rack.view(arguments.RACK)
 
-        elif arguments.rack:
-            rack = Rack()
+        elif arguments.set and arguments.NAME:
+            rack = Diagram()
             rack.load(arguments.RACK)
             data = {
                 arguments.ATTRIBUTE: arguments.VALUE
@@ -75,12 +68,19 @@ class DiagramCommand(PluginCommand):
             rack.set(arguments.NAME, **data)
             rack.save(arguments.RACK)
 
+        elif arguments.rack:
+            rack = Diagram()
+            rack.load(arguments.RACK)
+            rack.render(kind="rack")
+            rack.svg(arguments.RACK)
+            rack.view(arguments.RACK)
+
         elif arguments.net:
 
             hostnames = Parameter.expand(arguments.hostname)
 
-            net = Network(hostnames=hostnames)
-
+            net = Diagram(hostnames=hostnames)
+            net.render(kind="net")
             net.svg(arguments.RACK)
             net.view(arguments.RACK)
 

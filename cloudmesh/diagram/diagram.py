@@ -8,7 +8,7 @@ import oyaml as yaml
 from cloudmesh.common.util import path_expand
 
 
-class Rack(object):
+class Diagram(object):
     """
     A class to draw nic rack diagrams
 
@@ -50,7 +50,8 @@ class Rack(object):
                 counter = 1
                 for name in names:
                     self.data[name] = {
-                        "color": "white",
+                        "net.color": "white",
+                        "rack.color": "white",
                         "label": name,
                         "numbered": "",
                         "fontsize": "",
@@ -66,7 +67,63 @@ class Rack(object):
             self.data = data
             self.servers = 0
 
-    def render(self):
+    def render(self, kind="rack"):
+        if kind == "rack":
+            return self.render_rack()
+        if kind == "net":
+            return self.render_net()
+
+    def render_bridge_net(self):
+
+        manager = self.names[0]
+        header = textwrap.dedent("""
+        nwdiag {
+          # network internet{
+          #    address = "xxx.xxx.xxx.xxx"
+          #    modem
+          #}
+          network wifi {
+              address = "192.168.50.x"
+              # modem
+
+              manager [address = "192.168.50.100"];
+              laptop [address = "192.168.50.100"];
+              }
+          network internal {
+              address = "10.0.0.x";
+        """).replace("manager", manager)
+
+        servers = {}
+        counter = 1
+        for name in self.data:
+            parameters = []
+            for attribute in self.data[name]:
+                value = self.data[name][attribute]
+                if value is not None and value != "":
+                    parameters.append(
+                        f"{attribute}=\"{value}\""
+                    )
+            parameters.append('address = "10.0.0.{counter}"')
+            parameters = ", ".join(parameters)
+            servers[name] = f'      {name} [ {parameters} ];'
+            counter = counter + 1
+
+        workers = []
+        for worker in servers[1:]:
+            server = f'      {name} [ {servers[name]} ];'
+            workers.append(worker)
+
+        workers = "\n".join(workers)
+
+        footer = textwrap.dedent("""
+          }
+        }
+        """)
+
+        self.diag = header + workers + footer
+        return self.diag
+
+    def render_rack(self):
 
         name = self.names[0]
 
@@ -90,7 +147,11 @@ class Rack(object):
         for name in self.data:
             parameters = []
             for attribute in self.data[name]:
+                if attribute == "net.color":
+                    continue
                 value = self.data[name][attribute]
+                if attribute == "rack.color":
+                    attribute = "color"
                 if value is not None and value != "":
                     parameters.append(
                         f"{attribute}=\"{value}\""
