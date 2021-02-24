@@ -1,4 +1,5 @@
 from cloudmesh.diagram.rack import Rack
+from cloudmesh.diagram.network import Network
 
 from cloudmesh.common.parameter import Parameter
 from cloudmesh.shell.command import PluginCommand
@@ -19,6 +20,7 @@ class DiagramCommand(PluginCommand):
                 diagram rack RACK NAME ATTRIBUTE VALUE
                 diagram rack RACK
                 diagram view RACK
+                diagram net RACK --hostname=NAMES
 
 
           This command does some useful things.
@@ -34,10 +36,16 @@ class DiagramCommand(PluginCommand):
                 Installation:
                     pip install cloudmesh-diagram
 
-                Uassage:
+                Create a rack diagram:
                     cms diagram rack d --hostname="red[00-04]"
                     cms diagram rack d red01 color blue
                     cms diagram view d
+
+                Create a network diagram:
+                    cms diagram net  n --hostname="red,red[01-04]"
+
+                    The network diagram does not yet have the ability to set
+                    attributes
 
 
         """
@@ -66,5 +74,15 @@ class DiagramCommand(PluginCommand):
             }
             rack.set(arguments.NAME, **data)
             rack.save(arguments.RACK)
+
+        elif arguments.net:
+
+            hostnames = Parameter.expand(arguments.hostname)
+
+            net = Network(hostnames=hostnames)
+
+            net.svg(arguments.RACK)
+            net.view(arguments.RACK)
+
 
         return ""
