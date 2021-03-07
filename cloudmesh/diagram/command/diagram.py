@@ -17,17 +17,22 @@ class DiagramCommand(PluginCommand):
           Usage:
                 diagram set CLUSTER --hostname=NAMES
                 diagram set CLUSTER NAME ATTRIBUTE VALUE
-                diagram rack CLUSTER
-                diagram net CLUSTER
+                diagram rack CLUSTER [--output=FORMAT] [-n]
+                diagram net CLUSTER [--output=FORMAT] [-n]
 
 
-          This command does some useful things.
+          This command produces some default network and rack diagrams for a
+          small cluster setup.
 
           Arguments:
               FILE   a file name
+              --output=FORMAT   THe output format, one of svg, png, pdf, gif
+                                The default is svg
+
 
           Options:
               -f      specify the file
+              -n      no preview, just save to file
 
           Example:
 
@@ -40,11 +45,14 @@ class DiagramCommand(PluginCommand):
                     cms diagram set d red02 net.color red
                     cms diagram rack d
                     cms diagram net d
-
+                    cms diagram net d --output=png -n
 
         """
 
-        map_parameters(arguments, 'hostname')
+        map_parameters(arguments, 'hostname', 'output')
+        arguments.view = not arguments["-n"]
+
+        arguments.output = arguments.output or "svg"
 
         if arguments.set and arguments.hostname:
 
@@ -63,23 +71,23 @@ class DiagramCommand(PluginCommand):
             rack.save(arguments.CLUSTER)
 
         elif arguments.rack:
-            svg = f"{arguments.CLUSTER}-rack"
+            diag = f"{arguments.CLUSTER}-rack"
             rack = Diagram()
             rack.load(arguments.CLUSTER)
             rack.render(kind="rack")
-            rack.save_diagram(svg)
-            rack.svg(svg, kind="rack")
-            rack.view(svg)
+            rack.save_diagram(diag)
+            rack.saveas(diag, kind="rack", output=arguments.output)
+            if arguments.view:
+                rack.view(diag, output=arguments.output)
 
         elif arguments.net:
-
-            svg = f"{arguments.CLUSTER}-net"
-
+            diag = f"{arguments.CLUSTER}-net"
             net = Diagram()
             net.load(arguments.CLUSTER)
             net.render(kind="bridge")
-            net.save_diagram(svg)
-            net.svg(svg, kind="net")
-            net.view(svg)
+            net.save_diagram(diag)
+            net.saveas(diag, kind="net", output=arguments.output)
+            if arguments.view:
+                net.view(diag, output=arguments.output)
 
         return ""

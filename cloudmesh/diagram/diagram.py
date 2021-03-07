@@ -207,6 +207,7 @@ class Diagram(object):
             "names": self.names,
             "data": self.data
         }
+
         with open(path_expand(filename), 'w') as f:
             yaml.safe_dump(data, f)
 
@@ -226,17 +227,29 @@ class Diagram(object):
             f.flush()
 
     def svg(self, name, kind="rack"):
+        self.saveas(name, kind=kind, output="svg")
+
+    def png(self, name, kind="rack"):
+        self.saveas(name, kind=kind, output="png")
+
+    def pdf(self, name, kind="rack"):
+        self.saveas(name, kind=kind, output="pdf")
+
+    def gif(self, name, kind="rack"):
+        self.saveas(name, kind=kind, output="gif")
+
+    def saveas(self, name, kind="rack", output="svg"):
         filename = path_expand(name)
         self.save_diagram(name)
         if kind == 'rack':
-            cmd = ['rackdiag', "-T", "svg", f"{filename}.diag"]
+            cmd = ['rackdiag', "-T", output, f"{filename}.diag"]
         elif kind == "net":
-            cmd = ['nwdiag', "-T", "svg", f"{filename}.diag"]
+            cmd = ['nwdiag', "-T", output, f"{filename}.diag"]
         subprocess.Popen(cmd).wait()
 
-    def view(self, name):
+    def view(self, name, output="svg"):
         filename = path_expand(name)
-        cmd = ['open', f"{filename}.svg"]
+        cmd = ['open', f"{filename}.{output}"]
         subprocess.Popen(cmd)
 
     def __repr__(self):
