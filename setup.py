@@ -33,6 +33,7 @@ cloudmesh-sys
 cloudmesh-inventory
 cloudmesh-configuration
 blockdiag[PDF]
+nwdiag[PDF]
 """.split("\n")
 
 # dependency_links = ['http://github.com/nicolaiarocci/eve.git@develop']
